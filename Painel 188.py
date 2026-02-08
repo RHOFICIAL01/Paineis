@@ -32,8 +32,10 @@ MENU = f"""{Fore.BLUE}
 ├───────────────────┼───────────────────┤
 │ (2) Criar Canais  │ (4) Spam Global   │
 ├───────────────────┴───────────────────┤
-│ (5) Mudar Nome SV │ (6) Sair          │
-└───────────────────┴───────────────────┘
+│ (5) Mudar Nome SV │ (6) Spam DM All   │
+├───────────────────┴───────────────────┤
+│              (7) Sair                 │
+└───────────────────────────────────────┘
 """
 
 # --- Funções de Ação (Lógica de Alta Velocidade) ---
@@ -98,6 +100,25 @@ async def spam_todos_canais(guild):
     await asyncio.gather(*tasks)
     print(f"{Fore.GREEN}[+] Spam finalizado.")
 
+async def enviar_dm_task(member, mensagem):
+    async with semaphore:
+        for _ in range(3): # Loop para enviar 3 vezes
+            try:
+                await member.send(mensagem)
+                print(f"{Fore.GREEN}[+] DM enviada para: {member.name}")
+                await asyncio.sleep(0.1) # Pequena pausa para evitar rate limit instantâneo
+            except:
+                print(f"{Fore.RED}[X] Falha/Bloqueio ao enviar para: {member.name}")
+                break # Sai do loop de 3 se houver erro (ex: DM fechou ou block)
+
+async def spam_dm_all(guild):
+    mensagem = input(f"{Fore.CYAN}Digite a mensagem para DM All (3x): ")
+    print(f"{Fore.YELLOW}[*] Enviando DM 3 vezes para cada membro...")
+    membros = [m for m in guild.members if not m.bot]
+    tasks = [enviar_dm_task(m, mensagem) for m in membros]
+    await asyncio.gather(*tasks)
+    print(f"{Fore.GREEN}[+] Spam DM All (3x) finalizado.")
+
 # --- Loop de Comando ---
 
 @client.event
@@ -131,6 +152,8 @@ async def on_ready():
         elif op == "5":
             await mudar_nome_sv(guild)
         elif op == "6":
+            await spam_dm_all(guild)
+        elif op == "7":
             print(f"{Fore.RED}A desligar..."); await client.close(); break
         else:
             print(f"{Fore.YELLOW}Opção inválida!")
