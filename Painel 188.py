@@ -69,7 +69,7 @@ async def spam_todos_canais(guild):
         for canal in guild.text_channels:
             try: await canal.send(conteudo)
             except: pass
-        await asyncio.sleep(0.02)
+        await asyncio.sleep(0.00)
     print(f"{Fore.GREEN}[+] Spam finalizado.")
 
 # --- Loop de Comando ---
