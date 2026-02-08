@@ -1,2 +1,0 @@
-# Paineis
-Paineis Raid Discord
